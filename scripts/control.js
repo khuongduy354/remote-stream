@@ -1,0 +1,10 @@
+import net from 'node:net';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../', import.meta.url));
+const command = process.argv[2] || 'status';
+if (!['allow', 'revoke', 'status'].includes(command)) throw Error('Use allow, revoke or status');
+const socket = net.connect(path.join(process.env.STATE_DIR || path.join(root, '.state'), 'control.sock'));
+socket.on('connect', () => socket.write(command + '\n'));
+socket.on('data', data => process.stdout.write(data));
+socket.on('error', e => { console.error(e.message); process.exitCode = 1; });

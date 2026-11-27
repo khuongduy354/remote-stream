@@ -1,0 +1,4 @@
+node_modules/
+.state/
+*.mp4
+__pycache__/
