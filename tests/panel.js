@@ -21,6 +21,10 @@ try {
   await page.getByRole('button', { name: 'New work desktop' }).click();
   assert.equal(await page.locator('#desktop-size').isVisible(), false, 'Resolution starts behind disclosure');
   await page.getByLabel('Name', { exact: true }).fill('Writing & coding');
+  const options = await page.locator('#desktop-environment option').evaluateAll(items => items.map(item => item.value));
+  assert.ok(options.includes('i3'));
+  const chosenDesktop = options.find(id => id !== 'i3') || 'i3';
+  await page.getByLabel('Desktop', { exact: true }).selectOption(chosenDesktop);
   await page.getByRole('button', { name: 'Create desktop', exact: true }).click();
   await page.getByRole('heading', { name: 'Writing & coding', exact: true }).waitFor();
   await page.waitForFunction(() => [...document.querySelectorAll('.preview img')].every(img => img.complete && img.naturalWidth > 0), null, { timeout: 20000 });
@@ -33,6 +37,7 @@ try {
   await page.getByRole('button', { name: 'Copy invitation', exact: true }).click();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   let session = (await host.command({ action: 'status' })).sessions.find(s => s.name === 'Writing & coding');
+  assert.equal(session.desktopId, chosenDesktop);
   assert.equal(new URL(copied).searchParams.get('session'), session.id);
   assert.equal(new URLSearchParams(new URL(copied).hash.slice(1)).get('token'), session.tokens.view);
   await page.locator('#share-dialog').getByRole('button', { name: 'Close', exact: true }).click();

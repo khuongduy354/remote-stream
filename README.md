@@ -6,7 +6,10 @@ Linux desktop streaming with a visual HTML dashboard in a native WebKit window a
 
 Open **Remote Stream** from the application launcher or your existing i3 entry.
 
+Launch from i3 with **Super+D**, type **remote-stream**, and press **Enter**. The launcher focuses an existing window instead of opening duplicates.
+
 1. Each screen has a preview card. **Main screen** is the desktop already running on your computer. **New work desktop** creates a separate screen whose input does not affect the others.
+   During creation, choose **Desktop** (for example, i3 or Xfce). Choices come from installed X11 session entries; installing another X11 desktop makes it available automatically. Each work desktop keeps its chosen desktop environment.
 2. Click **Open** on a card to work in that screen. The viewer opens in your browser.
 3. Click **Share**, choose **Use this screen** or **Watch only**, then **Copy invitation**.
 4. Expand **People & settings** on a card to see connected people, hand off control, change audio, or end that work desktop.
@@ -39,7 +42,7 @@ There are at most four desktops (including Main desktop) and four viewers per de
 
 ## Run from source
 
-Requirements: Linux, Node.js 22+, FFmpeg with H.264 support, Python 3 with `python-xlib`. The app window needs PyGObject, GTK 3, and WebKitGTK 4.1. If WebKitGTK is unavailable, the launcher opens the same dashboard in your browser. Virtual desktops need Xvfb, i3, xauth, and dbus-run-session. Install a terminal such as xfce4-terminal. `pactl` enables virtual audio sinks.
+Requirements: Linux, Node.js 22+, FFmpeg with H.264 support, Python 3 with `python-xlib`. The app window needs PyGObject, GTK 3, and WebKitGTK 4.1. If WebKitGTK is unavailable, the launcher opens the same dashboard in your browser. Virtual desktops need Xvfb, xauth, dbus-run-session, and an installed X11 desktop. Session entries are discovered in the standard XDG data directories under `xsessions`. Wayland-only sessions are not supported by this X11 backend. Install a terminal such as xfce4-terminal. `pactl` enables virtual audio sinks.
 
 On Fedora, install the missing virtual display component with graphical administrator authentication:
 
@@ -59,7 +62,7 @@ python3 scripts/panel.py
 
 Default server binding is `127.0.0.1:8787`. For remote access, set `BIND=0.0.0.0` and `PUBLIC_ORIGIN` to the exact URL viewers use. Add other permitted URLs with `EXTRA_ORIGINS`. The installed user service reads `.state/service.env`; the dashboard uses the running server's permitted origins for sharing, with that file as a fallback.
 
-A usable existing X11 display adds Main desktop. If it is unavailable, the manager can still create virtual desktops. A minimal i3 configuration opens a terminal in each new desktop. `Super+Return` opens another terminal; `Super+d` opens the launcher if dmenu is installed. Host i3 autostart commands are deliberately not loaded inside virtual desktops.
+A usable existing X11 display adds Main desktop. If it is unavailable, the manager can still create virtual desktops. i3 sessions use a minimal configuration that opens a terminal. Other desktops use the command from their installed session entry, inside a separate D-Bus session. Some desktop environments rely on shared per-user services and need compatibility testing before regular use. `Super+Return` opens another terminal; `Super+d` opens the launcher if dmenu is installed. Host i3 autostart commands are deliberately not loaded inside virtual desktops.
 
 Installed service commands:
 

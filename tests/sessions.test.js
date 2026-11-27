@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { startHost, until, rejected, sleep } from './helpers.js';
 import { desktopAvailable } from '../host/desktops.js';
+import { desktopEntries } from '../host/desktop-entries.js';
 
 function inspect(host, session) {
   return JSON.parse(execFileSync('python3', ['-c', `from Xlib import display, XK
@@ -21,10 +22,15 @@ test('two real desktops: isolated input/audio, viewer permissions, handoff and l
     let state = await host.command({ action: 'create', name: 'Work A', width: 640, height: 480 });
     assert.equal(state.error, undefined, state.error);
     const a = state.sessions.find(s => s.id === state.created);
-    state = await host.command({ action: 'create', name: 'Work B', width: 640, height: 480 });
+    const alternative = desktopEntries().find(entry => entry.id !== 'i3') || desktopEntries()[0];
+    const deniedDesktop = await host.command({ action: 'create', name: 'Invalid', desktop: '/bin/sh' });
+    assert.match(deniedDesktop.error, /not installed/);
+    state = await host.command({ action: 'create', name: 'Work B', width: 640, height: 480, desktop: alternative.id });
     assert.equal(state.error, undefined, state.error);
     const b = state.sessions.find(s => s.id === state.created);
     assert.notEqual(a.display, b.display);
+    assert.equal(b.desktopId, alternative.id);
+    assert.equal(b.desktopName, alternative.name);
     if (a.audio && b.audio) assert.notEqual(a.audioSource, b.audioSource);
     const first = await host.connect(a, 'control', 'Alice');
     const second = await host.connect(b, 'control', 'Bob');

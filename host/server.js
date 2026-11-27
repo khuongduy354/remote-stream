@@ -9,6 +9,7 @@ import { config, number, withResolution } from './media.js';
 import { StreamSession } from './stream-session.js';
 import { createDesktop, desktopAvailable } from './desktops.js';
 import { desktopPreview } from './preview.js';
+import { desktopEntries } from './desktop-entries.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const state = path.resolve(process.env.STATE_DIR || path.join(root, '.state'));
@@ -20,7 +21,6 @@ const origins = new Set([origin, `http://localhost:${port}`, `http://127.0.0.1:$
 const sessions = new Map(), inputPath = path.join(root, 'host/input.py');
 const base = config({ ...process.env, SOURCE: 'test' });
 let stopping = false, hostError = '';
-const virtualAvailable = desktopAvailable();
 const socketPath = path.join(state, 'control.sock');
 // Check ownership before allocating resources or unlinking another server's socket.
 await new Promise((resolve, reject) => {
@@ -84,24 +84,24 @@ async function endSession(id) {
 function snapshot() {
   const entries = [...sessions.values()].map(s => s.status(true));
   return { connected: entries.some(s => s.connected), inputReady: entries.some(s => s.inputReady), allowed: entries.some(s => s.allowed),
-    lastError: hostError, virtualAvailable, origins: [...origins], sessions: entries };
+    lastError: hostError, virtualAvailable: desktopAvailable(), desktopOptions: desktopEntries().map(({ id, name }) => ({ id, name })), origins: [...origins], sessions: entries };
 }
 async function command(request) {
   if (stopping) throw Error('Server is stopping');
   const action = request.action || 'status', id = request.session || 'host';
   if (action === 'status') return snapshot();
   if (action === 'create') {
-    if (!virtualAvailable) throw Error('Install Xvfb, i3, xauth and dbus-run-session first');
+    if (!desktopAvailable()) throw Error('Install Xvfb, xauth, dbus-run-session and an X11 desktop first');
     if (sessions.size >= 4) throw Error('Maximum four desktops per host');
     const name = String(request.name || 'New desktop').trim().slice(0, 60);
     if (!name) throw Error('Enter a desktop name');
     const width = number(request.width, 1280, 640, 2560), height = number(request.height, 720, 480, 1440);
     if (width % 2 || height % 2) throw Error('Desktop dimensions must be even');
     const sessionId = randomBytes(8).toString('hex');
-    const desktop = await createDesktop({ id: sessionId, width, height, state, baseEnv: process.env, onExit: () => { void endSession(sessionId); } });
+    const desktop = await createDesktop({ id: sessionId, width, height, state, baseEnv: process.env, desktopId: request.desktop, onExit: () => { void endSession(sessionId); } });
     if (stopping) { await desktop.close(); throw Error('Server is stopping'); }
     const session = new StreamSession({ id: sessionId, name, kind: 'virtual', inputPath, env: desktop.env,
-      media: { ...base, source: 'desktop', display: desktop.display, width, height, screen: { width, height }, audio: !!desktop.audioSource, audioSource: desktop.audioSource } });
+      media: { ...base, desktopId: desktop.desktopId, desktopName: desktop.desktopName, source: 'desktop', display: desktop.display, width, height, screen: { width, height }, audio: !!desktop.audioSource, audioSource: desktop.audioSource } });
     session.desktop = desktop; sessions.set(sessionId, session);
     return { ...snapshot(), created: sessionId };
   }

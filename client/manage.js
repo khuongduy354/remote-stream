@@ -98,7 +98,7 @@ function render() {
   for (const session of state.sessions) {
     const entry = cards.get(session.id) || makeCard(session), card = entry.card, host = session.kind === 'host';
     card.querySelector('h2').textContent = title(session);
-    card.querySelector('.screen-type').textContent = host ? 'Your existing desktop' : 'Independent work desktop';
+    card.querySelector('.screen-type').textContent = host ? 'Your existing desktop' : `${session.desktopName || 'Independent'} · separate work desktop`;
     card.querySelector('.description').textContent = host ? 'The screen already running on your computer. Share this screen for games or existing apps.' : 'A separate screen for your work. Its mouse and keyboard won’t affect the main screen.';
     const requesting = session.viewers.some(v => v.requesting), badge = card.querySelector('.badge');
     badge.textContent = requesting ? 'Control requested' : session.connected ? 'In use' : 'Ready'; badge.classList.toggle('request', requesting);
@@ -175,6 +175,7 @@ $('copy-invite').onclick = async () => {
 };
 $('new-desktop').onclick = () => {
   const count = state.sessions.filter(s => s.kind === 'virtual').length;
+  $('desktop-environment').replaceChildren(...(state.desktopOptions || []).map(item => { const option = document.createElement('option'); option.value = item.id; option.textContent = item.name; return option; }));
   $('desktop-name').value = count ? `Work desktop ${count + 1}` : 'Work desktop';
   $('create-dialog').querySelector('details').open = false;
   $('create-dialog').showModal(); $('desktop-name').select();
@@ -183,7 +184,7 @@ $('create-form').onsubmit = async event => {
   event.preventDefault();
   const name = $('desktop-name').value.trim(); if (!name) { $('desktop-name').focus(); return; }
   const [width, height] = $('desktop-size').value.split('x').map(Number);
-  if (await mutate({ action: 'create', name, width, height }, 'Creating your work desktop…')) { $('create-dialog').close(); void previews(); }
+  if (await mutate({ action: 'create', name, width, height, desktop: $('desktop-environment').value }, 'Creating your work desktop…')) { $('create-dialog').close(); void previews(); }
 };
 $('revoke-invites').onclick = () => confirmation('Revoke invitations?', 'Everyone on this screen will disconnect. Old invitation links will stop working.', 'Revoke invitations', async () => !!await mutate({ action: 'rotate', session: sharing }, 'Revoking invitations…'));
 $('stop-server').onclick = () => confirmation('Stop all desktops?', 'All work desktops and their apps will close. Save your work first. The main screen itself stays running.', 'Stop server', async () => !!await mutate({ action: 'stop' }, 'Stopping server…', '/api/service'));
