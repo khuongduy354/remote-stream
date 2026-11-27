@@ -63,7 +63,7 @@ def prepare(base):
             ('Browser', f'google-chrome --user-data-dir="{base / "browser"}" --no-first-run --new-window', 'google-chrome'),
             ('Terminal', 'xfce4-terminal --disable-server', 'org.xfce.terminal'),
             ('Settings', 'xfce4-settings-manager', 'org.xfce.settings.manager'),
-            ('Applications', 'xfce4-appfinder', 'view-grid-symbolic'),
+            ('Applications', f'/usr/bin/python3 "{ROOT / "scripts/launchpad.py"}"', 'view-grid-symbolic'),
         ]
         for index, (name, command, icon) in enumerate(commands, 11):
             directory = config / 'xfce4/panel' / ('launcher-' + str(index))

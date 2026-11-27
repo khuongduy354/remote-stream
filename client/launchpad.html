@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Applications</title>
+<style>
+*{box-sizing:border-box}body{margin:0;color:white;font:15px system-ui,sans-serif;background:#263d6c;overflow:hidden}
+body:before{content:'';position:fixed;inset:-20px;background:linear-gradient(#14203940,#18213860),url('data:image/svg+xml;base64,__WALLPAPER__') center/cover;filter:blur(16px);z-index:-1}
+main{height:100vh;padding:28px 4vw 20px;display:flex;flex-direction:column;align-items:center}
+header{height:48px;flex-shrink:0;display:flex;justify-content:center;width:100%;position:relative}
+input{width:260px;height:34px;border:1px solid #ffffff45;border-radius:9px;background:#14254450;color:white;text-align:center;font:inherit;outline:none}input:focus{border-color:#ffffffa0}input::placeholder{color:#ffffffbd}
+#close{position:absolute;right:0;border:0;border-radius:50%;background:#ffffff15;color:white;font-size:25px;width:36px;height:36px;cursor:pointer}
+#grid{display:grid;flex:1;min-height:0;width:100%;max-width:1600px;align-items:center;justify-items:center}
+.app{border:0;background:none;color:inherit;width:100%;height:100%;max-height:165px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;border-radius:18px;font:inherit;padding:8px}
+.app:hover,.app:focus-visible{background:#ffffff18;outline:1px solid #ffffff40}.app:active{transform:scale(.96)}
+.app img,.fallback{width:var(--icon,88px);height:var(--icon,88px);object-fit:contain;filter:drop-shadow(0 4px 4px #0003);pointer-events:none}.fallback{display:grid;place-items:center;background:linear-gradient(145deg,#82bafa,#4562a6);border-radius:22%;font-size:38px}
+.label{max-width:95%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;text-shadow:0 1px 3px #0009;line-height:1.25}
+footer{height:40px;display:flex;align-items:center;gap:12px;flex-shrink:0}footer button{width:9px;height:9px;border:0;border-radius:50%;background:#ffffff55;padding:0;cursor:pointer}footer button[aria-current=true]{background:white}footer button:focus-visible{outline:2px solid white;outline-offset:4px}
+#empty{position:absolute;top:45%;color:#ffffffb0}button,input{-webkit-tap-highlight-color:transparent}
+</style>
+<main><header><input id="search" type="search" placeholder="Search applications" aria-label="Search applications" autocomplete="off"><button id="close" aria-label="Close applications" title="Close (Esc)">×</button></header><div id="grid" aria-label="Applications"></div><div id="empty" hidden>No applications found</div><footer aria-label="Application pages"></footer></main>
+<script>
+const apps=__APPS__;
+const grid=document.querySelector('#grid'),search=document.querySelector('#search'),footer=document.querySelector('footer');
+let page=0,columns=7,rows=4,filtered=apps;
+const send=data=>window.webkit.messageHandlers.launcher.postMessage(JSON.stringify(data));
+function render(){
+ columns=Math.max(3,Math.min(7,Math.floor(innerWidth/170)));
+ rows=Math.max(2,Math.min(5,Math.floor((innerHeight-136)/150)));
+ const size=columns*rows,pages=Math.max(1,Math.ceil(filtered.length/size));page=Math.min(page,pages-1);
+ grid.style.gridTemplateColumns=`repeat(${columns},1fr)`;grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
+ grid.style.setProperty('--icon',innerHeight<700?'64px':'88px');grid.replaceChildren();
+ for(const app of filtered.slice(page*size,(page+1)*size)){
+  const button=document.createElement('button');button.className='app';button.title=app.name;
+  const icon=document.createElement(app.icon?'img':'span');
+  if(app.icon){icon.src=app.icon;icon.alt=''}else{icon.className='fallback';icon.textContent=app.name[0]}
+  const label=document.createElement('span');label.className='label';label.textContent=app.name;
+  button.append(icon,label);button.onclick=()=>send({action:'launch',id:app.id});grid.append(button);
+ }
+ footer.replaceChildren();for(let i=0;i<pages;i++){const dot=document.createElement('button');dot.setAttribute('aria-label',`Page ${i+1}`);dot.setAttribute('aria-current',String(i===page));dot.onclick=()=>{page=i;render()};footer.append(dot)}
+ document.querySelector('#empty').hidden=filtered.length>0;
+}
+search.oninput=()=>{page=0;filtered=apps.filter(a=>a.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase().trim()));render()};
+document.querySelector('#close').onclick=()=>send({action:'close'});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')send({action:'close'});if(event.key==='Enter'&&document.activeElement===search)grid.querySelector('button')?.click();if(event.key==='PageDown'){page++;render()}if(event.key==='PageUp'){page=Math.max(0,page-1);render()}});
+let lastWheel=0;document.addEventListener('wheel',event=>{if(Date.now()-lastWheel<350||Math.abs(event.deltaY)<10)return;lastWheel=Date.now();page=Math.max(0,page+(event.deltaY>0?1:-1));render()},{passive:true});
+window.onresize=render;render();search.focus();
+</script>
+</html>

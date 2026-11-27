@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { startHost, until, sleep } from './helpers.js';
@@ -36,6 +36,25 @@ d.close()`;
     assert.equal(property('xfce4-appfinder', '/hide-category-pane'), 'true');
     assert.equal(property('xfce4-appfinder', '/text-beside-icons'), 'false');
     assert.equal(property('xfce4-appfinder', '/item-icon-size'), '5');
+    const launcher = spawn('/usr/bin/python3', [path.resolve('scripts/launchpad.py')], { env: childEnv, stdio: 'ignore' });
+    const windows = () => JSON.parse(execFileSync('python3', ['-c', `from Xlib import display
+import json
+d=display.Display();r=d.screen().root;p=r.get_full_property(d.intern_atom('_NET_CLIENT_LIST'),0)
+print(json.dumps([d.create_resource_object('window',int(i)).get_wm_name() for i in (p.value if p else [])]))`], { env: childEnv, encoding: 'utf8' }));
+    await until(() => windows().includes('Applications'), 'Full-screen launcher did not open');
+    await sleep(2000);
+    execFileSync('python3', ['-c', `from Xlib import display, X, XK
+from Xlib.ext import xtest
+import time
+d=display.Display()
+for char in 'file manager':
+ code=d.keysym_to_keycode(XK.string_to_keysym('space' if char==' ' else char))
+ xtest.fake_input(d,X.KeyPress,code);xtest.fake_input(d,X.KeyRelease,code);d.sync();time.sleep(.05)
+time.sleep(.3)
+code=d.keysym_to_keycode(XK.string_to_keysym('Return'))
+xtest.fake_input(d,X.KeyPress,code);xtest.fake_input(d,X.KeyRelease,code);d.sync()`], { env: childEnv });
+    await until(() => !windows().includes('Applications') && windows().some(name => /Thunar|Home|khuongduy354/i.test(name || '')), 'Launcher did not open file manager and dismiss');
+    assert.ok(launcher.exitCode === null || launcher.exitCode === 0);
     const viewer = await host.connect(session, 'control', 'Preset test');
     await until(() => viewer.info.permission?.allowed && viewer.info.fragments > 2, 'Preset desktop did not stream or accept control');
     await sleep(1800);
