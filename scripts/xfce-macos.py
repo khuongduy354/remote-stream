@@ -78,6 +78,13 @@ def prepare(base):
         prop(tasks, 'grouping', 'uint', 1)
         prop(tasks, 'flat-buttons', 'bool', True)
 
+    def appfinder(root):
+        for name, kind, value in [('icon-view', 'bool', True), ('hide-category-pane', 'bool', True), ('text-beside-icons', 'bool', False), ('item-icon-size', 'uint', 5), ('always-center', 'bool', True)]:
+            prop(root, name, kind, value)
+        last = prop(root, 'last', 'empty')
+        prop(last, 'window-width', 'int', 1000)
+        prop(last, 'window-height', 'int', 620)
+
     def appearance(root):
         net = prop(root, 'Net', 'empty')
         prop(net, 'ThemeName', 'string', 'Adwaita')
@@ -117,6 +124,7 @@ def prepare(base):
 
     write_channel(config, 'xfce4-panel', panels)
     write_channel(config, 'xsettings', appearance)
+    write_channel(config, 'xfce4-appfinder', appfinder)
     write_channel(config, 'xfwm4', window_manager)
     write_channel(config, 'xfce4-desktop', desktop)
     write_channel(config, 'xfce4-session', session)
