@@ -47,7 +47,7 @@ export async function createDesktop({ id, width, height, state, baseEnv, onExit,
       });
     });
     run('xauth', ['-f', auth, 'add', display, '.', cookie]);
-    const env = { ...baseEnv, DISPLAY: display, XAUTHORITY: auth, XDG_SESSION_TYPE: 'x11', XDG_CURRENT_DESKTOP: selected.desktopNames, XDG_SESSION_DESKTOP: selected.id, DESKTOP_SESSION: selected.id };
+    const env = { ...baseEnv, DISPLAY: display, XAUTHORITY: auth, XDG_SESSION_TYPE: 'x11', REMOTE_STREAM_SESSION_DIR: dir, XDG_CURRENT_DESKTOP: selected.desktopNames, XDG_SESSION_DESKTOP: selected.id, DESKTOP_SESSION: selected.id };
     delete env.DBUS_SESSION_BUS_ADDRESS; delete env.SESSION_MANAGER; delete env.I3SOCK;
     delete env.WAYLAND_DISPLAY; delete env.DESKTOP_STARTUP_ID;
     delete env.XDG_SESSION_ID; delete env.XDG_SEAT; delete env.XDG_VTNR;

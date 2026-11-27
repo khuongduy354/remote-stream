@@ -74,6 +74,20 @@ journalctl --user -u remote-stream.service -n 30
 
 The service should use `KillMode=control-group` so its child desktops cannot survive service termination. Clean shutdown also stops desktop process groups and unloads virtual audio sinks. Desktops and invites are not restored after restart; save work before stopping the server.
 
+## xfce macos preset
+
+The optional **xfce macos** desktop uses a light theme, top application bar, centered bottom dock, abstract wallpaper, and left-side window buttons. It is an Xfce layout inspired by macOS, not macOS itself.
+
+After installing Xfce's session, window manager, panel, desktop, settings, terminal and application finder, register the preset:
+
+```sh
+python3 scripts/xfce-macos.py --install
+```
+
+Choose **xfce macos** in **New work desktop → Desktop**. Each instance gets separate Xfce configuration, cache, and a Chrome profile. These live for that desktop's lifetime; ending the desktop removes them. Files saved in your normal home folders remain. The preset does not overwrite the main user's desktop configuration. Chrome must already be installed for the browser dock shortcut.
+
+The preset starts its D-Bus session after setting the private configuration paths, so activated Xfce settings services use the same profile. Host power, lock, network, and keyring agents are not auto-started in this preset.
+
 ## Stream settings
 
 Settings are environment variables, applied when the server starts.

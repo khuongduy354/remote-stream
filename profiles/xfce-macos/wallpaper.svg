@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+<defs>
+ <linearGradient id="sky" x2=".8" y2="1"><stop stop-color="#192f67"/><stop offset=".5" stop-color="#5d71a5"/><stop offset="1" stop-color="#f1c7b5"/></linearGradient>
+ <linearGradient id="far" x2=".6" y2="1"><stop stop-color="#b9a5d7"/><stop offset="1" stop-color="#5c4f90"/></linearGradient>
+ <linearGradient id="mid" x2=".9" y2="1"><stop stop-color="#527bab"/><stop offset="1" stop-color="#253956"/></linearGradient>
+ <linearGradient id="near" x2="1" y2="1"><stop stop-color="#193956"/><stop offset="1" stop-color="#122a43"/></linearGradient>
+</defs>
+<path fill="url(#sky)" d="M0 0h2560v1440H0z"/>
+<path fill="url(#far)" d="M0 1020C400 1010 690 360 1050 470S1520 1110 1940 720S2330 500 2560 650V1440H0Z"/>
+<path fill="url(#mid)" d="M0 960C420 610 650 970 1100 920S1720 460 2110 830S2460 940 2560 900V1440H0Z"/>
+<path fill="url(#near)" d="M0 1150C480 990 760 1340 1210 1230S2100 920 2560 1120V1440H0Z"/>
+</svg>
