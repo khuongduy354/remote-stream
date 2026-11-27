@@ -33,6 +33,7 @@ try {
   await second.waitForFunction(() => document.querySelector('#permission').textContent === 'VIEW ONLY');
   const observer = await pageFor('view');
   assert.equal(await observer.locator('#request').isDisabled(), true);
+  await observer.getByText('Stream settings', { exact: true }).click();
   await observer.locator('#resolution').selectOption('640x480');
   await observer.waitForFunction(() => { const v = document.querySelector('video'); return v.videoWidth === 640 && v.videoHeight === 480 && v.currentTime > 1; }, null, { timeout: 20000 });
   await observer.locator('#buffer').selectOption('2000');

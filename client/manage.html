@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remote Stream</title><link rel="stylesheet" href="/manage.css"></head>
+<body>
+<header class="app-header"><a class="brand" href="/" aria-label="Remote Stream home"><span class="brand-mark" aria-hidden="true"></span>Remote Stream</a><span class="local-label">On this computer</span></header>
+<main>
+  <div class="page-heading"><div><h1>Your screens</h1><p>Work on one. Share another.</p></div><button class="primary" id="new-desktop"><span aria-hidden="true">+</span> New work desktop</button></div>
+  <div id="notice" role="status" hidden></div>
+  <section id="screens" class="screens" aria-label="Your desktops"><p class="loading">Loading your screens…</p></section>
+  <section id="offline" hidden><div class="empty-icon" aria-hidden="true"></div><h2>Your desktop server is off</h2><p>Start it to see your screens and create a work desktop.</p><button class="primary" id="start-server">Start server</button></section>
+  <footer><span>Closing this window keeps your desktops running.</span><details id="server-settings"><summary>Server settings</summary><p>Stopping the server closes all work desktops and their apps. Save your work first.</p><button class="danger quiet" id="stop-server">Stop server…</button></details></footer>
+</main>
+<dialog id="create-dialog" aria-labelledby="create-title"><form id="create-form">
+  <div class="dialog-heading"><h2 id="create-title">A separate place to work</h2><button type="button" class="icon-button" data-close aria-label="Close">×</button></div>
+  <p>Your work gets its own screen, mouse, and keyboard. Other screens stay independent.</p>
+  <label for="desktop-name">Name</label><input id="desktop-name" name="name" maxlength="60" value="Work desktop" required autocomplete="off">
+  <details class="form-details"><summary>Screen options</summary><label for="desktop-size">Resolution</label><select id="desktop-size"><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option></select><p class="help">Best for terminals and light apps. Uses software graphics and shares this computer’s files.</p></details>
+  <div class="dialog-actions"><button type="button" data-close>Cancel</button><button type="submit" class="primary">Create desktop</button></div>
+</form></dialog>
+<dialog id="share-dialog" aria-labelledby="share-title">
+  <div class="dialog-heading"><h2 id="share-title">Share screen</h2><button class="icon-button" data-close aria-label="Close">×</button></div>
+  <p id="share-description">Send an invitation to the person joining this screen.</p>
+  <fieldset class="access-options"><legend>They can</legend><label><input type="radio" name="share-role" value="control" checked><span><strong>Use this screen</strong><small>Mouse and keyboard access</small></span></label><label><input type="radio" name="share-role" value="view"><span><strong>Watch only</strong><small>See the screen without controlling it</small></span></label></fieldset>
+  <button class="primary full" id="copy-invite">Copy invitation</button><p class="help" id="copy-status" role="status">Only this screen is shared.</p>
+  <details class="form-details"><summary>Link & connection</summary><label for="network">Connect over</label><select id="network"></select><label for="invite-link">Invitation link</label><input id="invite-link" readonly><p class="help">Anyone with this link gets the selected access. Use a trusted network or VPN.</p><button class="danger quiet" id="revoke-invites">Revoke invitations…</button></details>
+</dialog>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"><form id="confirm-form"><div class="dialog-heading"><h2 id="confirm-title"></h2><button type="button" class="icon-button" data-close aria-label="Close">×</button></div><p id="confirm-message"></p><div class="dialog-actions"><button type="button" data-close>Cancel</button><button type="submit" class="danger" id="confirm-action">Confirm</button></div></form></dialog>
+<script type="module" src="/manage.js"></script>
+</body></html>

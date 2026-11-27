@@ -5,7 +5,18 @@
 <header><div><strong>Remote Stream</strong><span class="tag" id="session-name">REMOTE DESKTOP</span></div><span id="connection" role="status">Disconnected</span></header>
 <main>
 <section class="toolbar" aria-label="Connection controls">
-<label>Your name <input id="viewer-name" maxlength="40" value="Guest" autocomplete="nickname"></label>
+<button id="connect">Connect</button><button id="disconnect" disabled>Disconnect</button>
+<button id="sound">Enable sound</button><button id="fullscreen">Fullscreen</button>
+<label class="check" hidden><input id="drift" type="checkbox">Gradual drift correction</label>
+</section>
+<section class="control-bar" aria-label="Remote control"><span id="controller" role="status">No remote controller</span><button id="request" disabled>Request control</button><button id="yield" disabled>Release control</button></section>
+<div id="notice" role="status">Fixed resolution and quality. Increase buffer to absorb short network stalls.</div>
+<section class="viewer" id="viewer" aria-label="Remote desktop">
+<video id="video" muted playsinline disablepictureinpicture tabindex="0" aria-label="Remote desktop. Click here to use mouse and keyboard."></video>
+<div id="placeholder">Remote desktop<small>Use an invitation link from the host panel.</small></div>
+<span id="permission">VIEW ONLY</span>
+</section>
+<details class="viewer-settings"><summary>Stream settings</summary><div class="settings-grid"><label>Your name <input id="viewer-name" maxlength="40" value="Guest" autocomplete="nickname"></label>
 <label>Resolution <select id="resolution">
 <option value="" selected>Host default</option>
 <optgroup label="Widescreen · 16:9">
@@ -23,17 +34,7 @@
 </optgroup>
 </select></label>
 <label>Playback buffer <select id="buffer"><option value="100">100 ms · experimental</option><option value="250">250 ms</option><option value="500">500 ms</option><option value="1000" selected>1000 ms</option><option value="2000">2000 ms</option><option value="5000">5000 ms</option></select></label>
-<button id="connect">Connect</button><button id="disconnect" disabled>Disconnect</button>
-<button id="sound">Enable sound</button><button id="fullscreen">Fullscreen</button>
-<label class="check" hidden><input id="drift" type="checkbox">Gradual drift correction</label>
-</section>
-<section class="control-bar" aria-label="Remote control"><span id="controller" role="status">No remote controller</span><button id="request" disabled>Request control</button><button id="yield" disabled>Release control</button></section>
-<div id="notice" role="status">Fixed resolution and quality. Increase buffer to absorb short network stalls.</div>
-<section class="viewer" id="viewer" aria-label="Remote desktop">
-<video id="video" muted playsinline disablepictureinpicture tabindex="0" aria-label="Remote desktop. Click here to use mouse and keyboard."></video>
-<div id="placeholder">Remote desktop<small>Use an invitation link from the host panel.</small></div>
-<span id="permission">VIEW ONLY</span>
-</section>
+</div></details>
 <details><summary>Stream details</summary><section id="stats" class="stats" aria-label="Stream diagnostics"></section></details>
 <footer>Click the desktop to use mouse and keyboard. Touch supports tapping and dragging.<br>Each desktop has independent input. Within one desktop, only one viewer controls it at a time. Keep invitation links private.</footer>
 </main><script type="module" src="/app.js"></script>

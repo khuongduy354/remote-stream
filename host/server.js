@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { config, number, withResolution } from './media.js';
 import { StreamSession } from './stream-session.js';
 import { createDesktop, desktopAvailable } from './desktops.js';
+import { desktopPreview } from './preview.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const state = path.resolve(process.env.STATE_DIR || path.join(root, '.state'));
@@ -83,7 +84,7 @@ async function endSession(id) {
 function snapshot() {
   const entries = [...sessions.values()].map(s => s.status(true));
   return { connected: entries.some(s => s.connected), inputReady: entries.some(s => s.inputReady), allowed: entries.some(s => s.allowed),
-    lastError: hostError, virtualAvailable, sessions: entries };
+    lastError: hostError, virtualAvailable, origins: [...origins], sessions: entries };
 }
 async function command(request) {
   if (stopping) throw Error('Server is stopping');
@@ -106,6 +107,7 @@ async function command(request) {
   }
   const session = sessions.get(id);
   if (!session) throw Error('Desktop no longer exists');
+  if (action === 'preview') return desktopPreview(session);
   if (action === 'end') { if (id === 'host') throw Error('The main desktop cannot be ended here'); await endSession(id); }
   else if (action === 'grant') session.grant(request.viewer);
   else if (action === 'revoke') session.grant(null);

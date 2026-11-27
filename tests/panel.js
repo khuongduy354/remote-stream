@@ -1,15 +1,79 @@
+import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import assert from 'node:assert/strict';
-import { startHost } from './helpers.js';
+import { startHost, startDashboard, until } from './helpers.js';
 import { createDesktop } from '../host/desktops.js';
+
 const host = await startHost();
-let desktop;
+let dashboard, browser, nativeDisplay;
 try {
-  desktop = await createDesktop({ id: 'panel-test', width: 1100, height: 1000, state: host.dir, baseEnv: process.env, onExit: () => {} });
-  const child = spawn('python3', ['tests/panel-fixture.py'], { env: { ...desktop.env, STATE_DIR: host.dir, PUBLIC_ORIGIN: host.origin }, stdio: ['ignore', 'pipe', 'pipe'] });
+  dashboard = await startDashboard(host);
+  browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  const page = await context.newPage(), errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(dashboard.url);
+  await page.getByRole('heading', { name: 'Main screen', exact: true }).waitFor();
+  assert.equal(page.url(), dashboard.origin + '/', 'Admin token removed from address bar');
+  assert.equal(await page.locator('.screen-details[open]').count(), 0);
+  assert.equal(await page.getByText('Your work can have its own screen').isVisible(), true);
+  await page.getByRole('button', { name: 'New work desktop' }).click();
+  assert.equal(await page.locator('#desktop-size').isVisible(), false, 'Resolution starts behind disclosure');
+  await page.getByLabel('Name', { exact: true }).fill('Writing & coding');
+  await page.getByRole('button', { name: 'Create desktop', exact: true }).click();
+  await page.getByRole('heading', { name: 'Writing & coding', exact: true }).waitFor();
+  await page.waitForFunction(() => [...document.querySelectorAll('.preview img')].every(img => img.complete && img.naturalWidth > 0), null, { timeout: 20000 });
+  assert.equal(await page.locator('.screen').count(), 2);
+  assert.equal(await page.locator('.blank-screen').count(), 0);
+  const work = page.locator('.screen').filter({ has: page.getByRole('heading', { name: 'Writing & coding' }) });
+  await work.getByRole('button', { name: 'Share Writing & coding' }).click();
+  assert.equal(await page.locator('#invite-link').isVisible(), false);
+  await page.getByText('Watch only', { exact: true }).click();
+  await page.getByRole('button', { name: 'Copy invitation', exact: true }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  let session = (await host.command({ action: 'status' })).sessions.find(s => s.name === 'Writing & coding');
+  assert.equal(new URL(copied).searchParams.get('session'), session.id);
+  assert.equal(new URLSearchParams(new URL(copied).hash.slice(1)).get('token'), session.tokens.view);
+  await page.locator('#share-dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await page.screenshot({ path: '/tmp/remote-stream-dashboard.png', fullPage: true });
+  const first = await host.connect(session, 'control', 'Alice');
+  const second = await host.connect(session, 'control', 'Bob');
+  await until(() => first.info.permission?.allowed && second.info.permission, 'No input permissions');
+  second.send({ type: 'request-control' });
+  await work.getByText('Control requested', { exact: true }).waitFor();
+  await work.locator('summary').click();
+  await work.getByRole('button', { name: 'Give control to Bob' }).click();
+  await until(() => second.info.permission?.allowed && !first.info.permission?.allowed, 'Dashboard did not hand off control');
+  await work.getByRole('button', { name: 'Release control from Bob' }).click();
+  await until(() => !second.info.permission?.allowed, 'Dashboard did not release control');
+  const audio = work.getByRole('checkbox');
+  if (await audio.isEnabled()) {
+    await audio.uncheck();
+    await until(async () => !(await host.command({ action: 'status' })).sessions.find(s => s.id === session.id).audio, 'Audio not updated');
+  }
+  await work.getByRole('button', { name: 'Share Writing & coding' }).click();
+  await page.locator('#share-dialog summary').click();
+  await page.getByRole('button', { name: 'Revoke invitations…' }).click();
+  await page.getByRole('button', { name: 'Revoke invitations', exact: true }).click();
+  await until(async () => (await host.command({ action: 'status' })).sessions.find(s => s.id === session.id).tokens.view !== session.tokens.view, 'Invites were not revoked');
+  await page.locator('#share-dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await work.getByRole('button', { name: 'End desktop…' }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  assert.equal(await work.count(), 1);
+  await work.getByRole('button', { name: 'End desktop…' }).click();
+  await page.getByRole('button', { name: 'End desktop', exact: true }).click();
+  await work.waitFor({ state: 'detached' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile layout overflows');
+  await page.screenshot({ path: '/tmp/remote-stream-dashboard-mobile.png', fullPage: true });
+  assert.deepEqual(errors, []);
+  console.log('PASS: visual dashboard creation, previews, progressive disclosure, invites, control handoff, audio, revoke, end/cancel, mobile layout.');
+  // Also exercise the actual embedded WebKit app, not only Chromium.
+  nativeDisplay = await createDesktop({ id: 'webview-test', width: 1280, height: 900, state: host.dir, baseEnv: process.env, onExit: () => {} });
+  const child = spawn('python3', ['tests/panel-fixture.py'], { env: { ...nativeDisplay.env, STATE_DIR: host.dir }, stdio: ['ignore', 'pipe', 'pipe'] });
   let output = ''; child.stdout.on('data', d => output += d); child.stderr.on('data', d => output += d);
-  const timeout = setTimeout(() => child.kill('SIGKILL'), 40000);
-  const [code] = await once(child, 'close'); clearTimeout(timeout);
+  const timer = setTimeout(() => child.kill('SIGKILL'), 30000);
+  const [code] = await once(child, 'close'); clearTimeout(timer);
   assert.equal(code, 0, output); console.log(output.trim());
-} finally { await desktop?.close(); await host.close(); }
+} finally { await nativeDisplay?.close(); await browser?.close(); await dashboard?.close(); await host.close(); }

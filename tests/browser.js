@@ -8,7 +8,8 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto(base);
   await page.waitForFunction(() => document.querySelector('video').currentTime > 3, null, { timeout: 20000 });
-  await page.locator('summary').click();
+  await page.getByText('Stream details', { exact: true }).click();
+  await page.getByText('Stream settings', { exact: true }).click();
   await page.waitForTimeout(5000);
   const first = await page.evaluate(() => {
     const v = document.querySelector('video');

@@ -62,3 +62,15 @@ export async function rejected(socket, expected) {
   if (response.statusCode !== expected) throw Error(`Expected HTTP ${expected}; got ${response.statusCode}`);
   response.resume(); socket.terminate();
 }
+
+export async function startDashboard(host) {
+  const child = spawn(process.execPath, ['scripts/dashboard.js'], { env: { ...process.env, STATE_DIR: host.dir, PUBLIC_ORIGIN: host.origin, SERVICE_MANAGEMENT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  let output = '', errors = '';
+  child.stdout.on('data', d => output += d); child.stderr.on('data', d => errors += d);
+  await until(() => output.includes('\n') || child.exitCode !== null, 'Dashboard startup timed out');
+  if (child.exitCode !== null) throw Error(errors);
+  const { origin, token } = JSON.parse(output.split('\n')[0]);
+  const headers = { Authorization: `Bearer ${token}` };
+  const close = async () => { if (child.exitCode === null) { const ended = once(child, 'close'); child.kill('SIGTERM'); await ended; } };
+  return { origin, token, headers, url: `${origin}/#key=${token}`, close };
+}

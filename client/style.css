@@ -2,3 +2,5 @@
 details{margin-top:16px}summary{cursor:pointer;color:#a9bbc9;padding:8px 0}.toolbar{padding:16px;background:#101923;border:1px solid #273343;border-radius:10px}#notice{color:#c3d3df}button{min-height:44px}#disconnect{background:#472633}#permission{font-weight:600}.viewer{margin-top:12px}
 
 .control-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}.control-bar span{flex:1;color:#a9bbc9}#viewer-name{max-width:180px}
+
+.settings-grid{display:flex;flex-wrap:wrap;gap:18px;padding:16px 0}.viewer-settings{margin-top:18px}.toolbar{align-items:center}
