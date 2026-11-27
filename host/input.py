@@ -2,6 +2,7 @@
 import json
 import os
 import select
+import signal
 import sys
 from Xlib import X, XK, display
 from Xlib.ext import xtest
@@ -35,6 +36,13 @@ def release():
     held_keys.clear()
     held_buttons.clear()
     connection.sync()
+
+# Graceful process termination must release XTEST keys, not leave them held.
+def terminate(_signum, _frame):
+    raise SystemExit(0)
+
+signal.signal(signal.SIGTERM, terminate)
+signal.signal(signal.SIGINT, terminate)
 
 print(json.dumps({'ready': True}), flush=True)
 pending = b''

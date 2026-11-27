@@ -7,6 +7,11 @@ let bytes = 0, previousBytes = 0, bitrate = 0, rebufferings = 0, retries = 0, re
 let rendered = 0, previousRendered = 0, renderedFPS = 0, lastProgressAt = 0, lastTime = 0;
 let streamError = '', clockOffset = 0, clockReady = false, pendingMove = null, dragging = false, heartbeatTimer, capabilityFailure = false;
 const LIMIT = 16 * 1024 * 1024;
+const invitation = new URLSearchParams(location.hash.slice(1));
+const sessionId = new URLSearchParams(location.search).get('session') || 'host';
+const token = invitation.get('token') || '';
+let viewerId = null;
+const credentials = () => new URLSearchParams({ session: sessionId, token });
 const target = () => Number($('buffer').value) / 1000;
 function resolutionLabel(width, height) {
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
@@ -15,7 +20,7 @@ function resolutionLabel(width, height) {
 }
 const note = message => { $('notice').textContent = message; };
 const state = message => { $('connection').textContent = message; };
-function setControl(value) { control = value; $('permission').textContent = value ? 'CONTROL ENABLED' : 'VIEW ONLY'; }
+function setControl(value) { control = value; if (!value) { pendingMove = null; dragging = false; } $('permission').textContent = value ? 'CONTROL ENABLED' : 'VIEW ONLY'; $('yield').disabled = !value; }
 function sendInput(event) {
   if (input?.readyState === WebSocket.OPEN && (control || ['release', 'heartbeat'].includes(event.type))) {
     if (input.bufferedAmount > 8192) { input.close(); setControl(false); return; }
@@ -74,29 +79,32 @@ function setup(info, currentGeneration) {
   $('viewer').style.aspectRatio = `${info.width}/${info.height}`;
 }
 function attachInput(currentGeneration) {
-  input = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/input`);
-  input.onmessage = e => { if (currentGeneration !== generation) return; const m = JSON.parse(e.data); if (m.type === 'permission') setControl(m.allowed); };
+  const params = credentials(); params.set('viewer', viewerId);
+  input = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/input?${params}`);
+  input.onmessage = e => { if (currentGeneration !== generation) return; const m = JSON.parse(e.data); if (m.type === 'permission') { setControl(m.allowed); $('request').disabled = !m.canRequest || m.allowed || m.requesting; $('request').textContent = m.requesting ? 'Control requested' : 'Request control'; $('controller').textContent = m.controller ? `${m.controller} controls this desktop` : 'No remote controller'; } };
   input.onclose = () => { if (currentGeneration === generation) { setControl(false); note('Input channel closed. Reconnect video to restore input.'); } };
   heartbeatTimer = setInterval(() => sendInput({ type: 'heartbeat' }), 1000);
 }
 function connect() {
+  if (!token) { stop('Invitation required'); note('Open a share link from the Remote Stream host panel.'); return; }
   cleanup(); wanted = true; capabilityFailure = false;
   const currentGeneration = generation;
   streamError = ''; bytes = previousBytes = rendered = previousRendered = 0; metadata = null; sequence = 0; clockReady = false;
   lastProgressAt = performance.now(); lastTime = 0;
   $('connect').disabled = true; $('disconnect').disabled = false; state('Connecting');
-  const params = new URLSearchParams({ buffer: target() * 1000 });
+  const params = credentials(); params.set('buffer', target() * 1000); params.set('name', $('viewer-name').value.trim().slice(0, 40) || 'Guest');
   if ($('resolution').value) {
     const [width, height] = $('resolution').value.split('x');
     params.set('width', width); params.set('height', height);
   }
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/video?${params}`);
   ws.binaryType = 'arraybuffer';
-  ws.onopen = () => { if (currentGeneration !== generation) return; state('Buffering'); attachInput(currentGeneration); ws.send(JSON.stringify({ type: 'ping', at: Date.now() })); };
+  ws.onopen = () => { if (currentGeneration !== generation) return; state('Buffering'); ws.send(JSON.stringify({ type: 'ping', at: Date.now() })); };
   ws.onmessage = e => {
     if (currentGeneration !== generation) return;
     if (typeof e.data === 'string') {
       const m = JSON.parse(e.data);
+      if (m.type === 'hello') { viewerId = m.viewer; $('session-name').textContent = m.name; attachInput(currentGeneration); }
       if (m.type === 'init') setup(m, currentGeneration);
       if (m.type === 'fragment') sequence = m.sequence;
       if (m.type === 'error') { streamError = m.message; note(m.message); }
@@ -111,7 +119,7 @@ function connect() {
     drain();
   };
   ws.onclose = e => { if (currentGeneration === generation && wanted) retry(streamError || `Connection lost (${e.code}). Retrying; quality stays fixed. Check host if this repeats.`); };
-  ws.onerror = () => note('Connection failed. Check host status and whether another viewer is connected.');
+  ws.onerror = () => note('Connection failed. Check invitation, host status, or viewer limit.');
 }
 video.addEventListener('error', () => { if (wanted && metadata) retry('Video playback failed. Restarting decoder.'); });
 video.addEventListener('waiting', () => { if (started && playing) { rebufferings++; playing = false; video.pause(); state('Rebuffering'); } });
@@ -126,7 +134,7 @@ setInterval(() => {
   if (decision.action === 'pause') { if (playing) rebufferings++; playing = false; video.pause(); state('Rebuffering'); }
   if (decision.action === 'play' && !playing) {
     playing = true;
-    video.play().then(() => { started = true; retries = 0; $('placeholder').hidden = true; state('Streaming'); note('Connected. Click the desktop to use mouse and keyboard.'); }).catch(() => {
+    video.play().then(() => { started = true; retries = 0; $('placeholder').hidden = true; state('Streaming'); note(control ? 'Connected. Click the desktop to use mouse and keyboard.' : 'Viewing desktop. The host manages control permissions.'); }).catch(() => {
       playing = false; note('Playback needs a gesture. Click the video to continue.');
     });
   }
@@ -156,6 +164,9 @@ setInterval(() => {
 }, 1000);
 $('connect').onclick = () => { rebufferings = 0; retries = 0; connect(); };
 $('disconnect').onclick = () => stop();
+$('request').onclick = () => { if (input?.readyState === WebSocket.OPEN) input.send(JSON.stringify({ type: 'request-control' })); };
+$('yield').onclick = () => { if (input?.readyState === WebSocket.OPEN) input.send(JSON.stringify({ type: 'yield-control' })); };
+$('viewer-name').onchange = () => { if (wanted) { stop(); connect(); } };
 $('buffer').onchange = () => { if (wanted) { clearTimeout(reconnectTimer); reconnectTimer = null; connect(); } };
 $('resolution').onchange = () => {
   if (wanted) {

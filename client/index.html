@@ -2,9 +2,10 @@
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remote Stream</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<header><div><strong>Remote Stream</strong><span class="tag">QUALITY FIRST</span></div><span id="connection" role="status">Disconnected</span></header>
+<header><div><strong>Remote Stream</strong><span class="tag" id="session-name">REMOTE DESKTOP</span></div><span id="connection" role="status">Disconnected</span></header>
 <main>
 <section class="toolbar" aria-label="Connection controls">
+<label>Your name <input id="viewer-name" maxlength="40" value="Guest" autocomplete="nickname"></label>
 <label>Resolution <select id="resolution">
 <option value="" selected>Host default</option>
 <optgroup label="Widescreen · 16:9">
@@ -26,13 +27,14 @@
 <button id="sound">Enable sound</button><button id="fullscreen">Fullscreen</button>
 <label class="check" hidden><input id="drift" type="checkbox">Gradual drift correction</label>
 </section>
+<section class="control-bar" aria-label="Remote control"><span id="controller" role="status">No remote controller</span><button id="request" disabled>Request control</button><button id="yield" disabled>Release control</button></section>
 <div id="notice" role="status">Fixed resolution and quality. Increase buffer to absorb short network stalls.</div>
 <section class="viewer" id="viewer" aria-label="Remote desktop">
 <video id="video" muted playsinline disablepictureinpicture tabindex="0" aria-label="Remote desktop. Click here to use mouse and keyboard."></video>
-<div id="placeholder">Connecting to your desktop…<small>No sign-in needed.</small></div>
+<div id="placeholder">Remote desktop<small>Use an invitation link from the host panel.</small></div>
 <span id="permission">VIEW ONLY</span>
 </section>
 <details><summary>Stream details</summary><section id="stats" class="stats" aria-label="Stream diagnostics"></section></details>
-<footer>Click the desktop to use mouse and keyboard. Touch supports tapping and dragging.<br>Access is open while the host runs. Stop the server in the host app to end sharing.</footer>
+<footer>Click the desktop to use mouse and keyboard. Touch supports tapping and dragging.<br>Each desktop has independent input. Within one desktop, only one viewer controls it at a time. Keep invitation links private.</footer>
 </main><script type="module" src="/app.js"></script>
 </body></html>

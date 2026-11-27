@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-const base = process.env.TEST_URL || 'http://localhost:8787';
+const base = process.env.TEST_URL;
+if (!base || !new URL(base).hash.includes('token=')) throw Error('Set TEST_URL to a current invitation link from the host panel');
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true });
 try {
   const page = await browser.newPage();
